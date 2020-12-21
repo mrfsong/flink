@@ -266,8 +266,14 @@ public class TimeWindow extends Window {
 	 * @param offset The offset which window start would be shifted by.
 	 * @param windowSize The size of the generated windows.
 	 * @return window start
+	 *
+	 * Felix: 滑动窗口和滚动窗口都是调用这个函数获取窗口的起始位置
+	 * 1. 滑动窗口传入的windowSize是滑动的大小、滚动窗口传入的是窗口大小
+	 * 2. 对于滑动窗口按照slide滑动，其实可以理解成长度为slide的滚动窗口
 	 */
 	public static long getWindowStartWithOffset(long timestamp, long offset, long windowSize) {
+
+		//Felix: 窗口开始时间核心计算逻辑
 		return timestamp - (timestamp - offset + windowSize) % windowSize;
 	}
 }

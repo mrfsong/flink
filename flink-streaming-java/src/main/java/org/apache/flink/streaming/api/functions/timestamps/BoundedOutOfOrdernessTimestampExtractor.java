@@ -73,6 +73,8 @@ public abstract class BoundedOutOfOrdernessTimestampExtractor<T> implements Assi
 		if (potentialWM >= lastEmittedWatermark) {
 			lastEmittedWatermark = potentialWM;
 		}
+		//Felix: 此处将下一个水位推迟了maxOutOfOrderness单位，但仍保证watermark单调递增。
+		//Felix: watermark大于window#endTime时、才会关闭窗口并触发一次窗口计算，此处可以通过maxOutOfOrderness「延迟」窗口的关闭时间、避免乱序导致的延迟数据被丢弃（也可以外部通过sideoutput来处理）
 		return new Watermark(lastEmittedWatermark);
 	}
 

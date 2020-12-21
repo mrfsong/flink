@@ -202,6 +202,7 @@ public class EvictingWindowOperator<K, IN, OUT, W extends Window>
 				evictingWindowState.setCurrentNamespace(window);
 				evictingWindowState.add(element);
 
+				//Felix: 初始化TriggerContext内容
 				triggerContext.key = key;
 				triggerContext.window = window;
 				evictorContext.key = key;

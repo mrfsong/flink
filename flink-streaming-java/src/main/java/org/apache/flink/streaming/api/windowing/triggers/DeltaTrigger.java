@@ -52,10 +52,12 @@ public class DeltaTrigger<T, W extends Window> extends Trigger<T, W> {
 	@Override
 	public TriggerResult onElement(T element, long timestamp, W window, TriggerContext ctx) throws Exception {
 		ValueState<T> lastElementState = ctx.getPartitionedState(stateDesc);
+		//Felix: lastElementState为作业启动后、首次进入当前窗口的元素
 		if (lastElementState.value() == null) {
 			lastElementState.update(element);
 			return TriggerResult.CONTINUE;
 		}
+		//Felix: 当最新元素和窗口首元素差值超过阈值、将会触发一次窗口计算
 		if (deltaFunction.getDelta(lastElementState.value(), element) > this.threshold) {
 			lastElementState.update(element);
 			return TriggerResult.FIRE;

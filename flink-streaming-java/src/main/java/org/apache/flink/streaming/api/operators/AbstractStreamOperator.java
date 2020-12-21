@@ -597,6 +597,7 @@ public abstract class AbstractStreamOperator<OUT>
 
 	public void processWatermark(Watermark mark) throws Exception {
 		if (timeServiceManager != null) {
+			//Felix: time window的触发依赖于watermark
 			timeServiceManager.advanceWatermark(mark);
 		}
 		output.emitWatermark(mark);

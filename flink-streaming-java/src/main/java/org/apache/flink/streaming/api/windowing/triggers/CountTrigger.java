@@ -45,6 +45,7 @@ public class CountTrigger<W extends Window> extends Trigger<Object, W> {
 
 	@Override
 	public TriggerResult onElement(Object element, long timestamp, W window, TriggerContext ctx) throws Exception {
+		//Felix: state中存储累加后的结果（ReducingState支持merge操作、get + set）
 		ReducingState<Long> count = ctx.getPartitionedState(stateDesc);
 		count.add(1L);
 		if (count.get() >= maxCount) {

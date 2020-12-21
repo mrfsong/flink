@@ -58,7 +58,7 @@ under the License.
 		<module>flink-scala</module>
 		<module>flink-filesystems</module>
 		<module>flink-runtime</module>
-		<module>flink-runtime-web</module>
+		<!--<module>flink-runtime-web</module>-->
 		<module>flink-optimizer</module>
 		<module>flink-streaming-java</module>
 		<module>flink-streaming-scala</module>
@@ -1273,7 +1273,7 @@ under the License.
 									<rules>
 										<requireMavenVersion>
 											<!-- maven version must be lower than 3.3. See FLINK-3158 -->
-											<version>(,3.3)</version>
+											<version>(,3.6)</version>
 										</requireMavenVersion>
 										<requireJavaVersion>
 											<version>1.8.0</version>

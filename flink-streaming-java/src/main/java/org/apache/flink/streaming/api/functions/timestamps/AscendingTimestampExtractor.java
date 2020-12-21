@@ -75,6 +75,7 @@ public abstract class AscendingTimestampExtractor<T> implements AssignerWithPeri
 			this.currentTimestamp = newTimestamp;
 			return newTimestamp;
 		} else {
+			//Felix: 乱序导致eventTime时间回拨时、会触发MonotonyViolation
 			violationHandler.handleViolation(newTimestamp, this.currentTimestamp);
 			return newTimestamp;
 		}
@@ -82,6 +83,7 @@ public abstract class AscendingTimestampExtractor<T> implements AssignerWithPeri
 
 	@Override
 	public final Watermark getCurrentWatermark() {
+		//Felix: watermark单调递增
 		return new Watermark(currentTimestamp == Long.MIN_VALUE ? Long.MIN_VALUE : currentTimestamp - 1);
 	}
 

@@ -67,7 +67,9 @@ public class SlidingEventTimeWindows extends WindowAssigner<Object, TimeWindow> 
 	@Override
 	public Collection<TimeWindow> assignWindows(Object element, long timestamp, WindowAssignerContext context) {
 		if (timestamp > Long.MIN_VALUE) {
+			//Felix: 计算当前窗口可以有多少个滑动窗口
 			List<TimeWindow> windows = new ArrayList<>((int) (size / slide));
+			//Felix: 获取当前元素eventTime所在的最近窗口的起始位置
 			long lastStart = TimeWindow.getWindowStartWithOffset(timestamp, offset, slide);
 			for (long start = lastStart;
 				start > timestamp - size;

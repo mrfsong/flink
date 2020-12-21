@@ -59,15 +59,17 @@ public class TumblingEventTimeWindows extends WindowAssigner<Object, TimeWindow>
 			throw new IllegalArgumentException("TumblingEventTimeWindows parameters must satisfy abs(offset) < size");
 		}
 
-		this.size = size;
-		this.globalOffset = offset;
-		this.windowStagger = windowStagger;
+		this.size = size;					//窗口大小
+		this.globalOffset = offset;			//窗口
+		this.windowStagger = windowStagger;	//
 	}
 
 	@Override
 	public Collection<TimeWindow> assignWindows(Object element, long timestamp, WindowAssignerContext context) {
+		//Felix: element: 源数据  timestamp: eventTime
 		if (timestamp > Long.MIN_VALUE) {
 			if (staggerOffset == null) {
+				//Felix: 当前类型窗口使用WindowStagger.ALIGNED策略、staggerOffset == 0L
 				staggerOffset = windowStagger.getStaggerOffset(context.getCurrentProcessingTime(), size);
 			}
 			// Long.MIN_VALUE is currently assigned when no timestamp is present

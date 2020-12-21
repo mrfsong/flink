@@ -290,6 +290,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 
 	@Override
 	public void processElement(StreamRecord<IN> element) throws Exception {
+
+		//Felix: 计算当前元素所在window
 		final Collection<W> elementWindows = windowAssigner.assignWindows(
 			element.getValue(), element.getTimestamp(), windowAssignerContext);
 
@@ -394,9 +396,13 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 				triggerContext.key = key;
 				triggerContext.window = window;
 
+
+				//Felix: 判断当前element是否到达触发条件
 				TriggerResult triggerResult = triggerContext.onElement(element);
 
 				if (triggerResult.isFire()) {
+
+					//Felix: 从State(Heap/Rocksdb)中获取窗口数据
 					ACC contents = windowState.get();
 					if (contents == null) {
 						continue;
@@ -415,6 +421,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		// element not handled by any window
 		// late arriving tag has been set
 		// windowAssigner is event time and current timestamp + allowed lateness no less than element timestamp
+		//Felix：late元素，输出到测流
 		if (isSkippedElement && isElementLate(element)) {
 			if (lateDataOutputTag != null){
 				sideOutput(element);
@@ -424,6 +431,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 		}
 	}
 
+
+	//Felix: eventTime < watermark时，触发回调函数入口
 	@Override
 	public void onEventTime(InternalTimer<K, W> timer) throws Exception {
 		triggerContext.key = timer.getKey();
@@ -574,6 +583,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 * of the given window.
 	 */
 	protected boolean isWindowLate(W window) {
+		//Felix: 判断窗口是否延迟条件：eventTime时间语义 && 水位线超过窗口 (endTime +  allowedLateness) 时间
 		return (windowAssigner.isEventTime() && (cleanupTime(window) <= internalTimerService.currentWatermark()));
 	}
 
@@ -637,6 +647,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	private long cleanupTime(W window) {
 		if (windowAssigner.isEventTime()) {
 			long cleanupTime = window.maxTimestamp() + allowedLateness;
+			//Felix: TODO 什么情况下会出现 cleanupTime < window.maxTimestamp() [即：allowedLateness < 0]
 			return cleanupTime >= window.maxTimestamp() ? cleanupTime : Long.MAX_VALUE;
 		} else {
 			return window.maxTimestamp();

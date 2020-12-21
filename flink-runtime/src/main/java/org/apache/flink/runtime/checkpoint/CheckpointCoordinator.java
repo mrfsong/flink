@@ -1687,6 +1687,7 @@ public class CheckpointCoordinator {
 		@Override
 		public void run() {
 			try {
+				//Felix: checkpoint时间入口
 				triggerCheckpoint(true);
 			}
 			catch (Exception e) {

@@ -45,11 +45,11 @@ import java.util.List;
 public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWindow> {
 	private static final long serialVersionUID = 1L;
 
-	private final long size;
+	private final long size;	//Felix：窗口大小
 
 	private final long offset;
 
-	private final long slide;
+	private final long slide;	//Felix: 滑动窗口大小
 
 	private SlidingProcessingTimeWindows(long size, long slide, long offset) {
 		if (Math.abs(offset) >= slide || size <= 0) {
@@ -66,6 +66,7 @@ public class SlidingProcessingTimeWindows extends WindowAssigner<Object, TimeWin
 	public Collection<TimeWindow> assignWindows(Object element, long timestamp, WindowAssignerContext context) {
 		timestamp = context.getCurrentProcessingTime();
 		List<TimeWindow> windows = new ArrayList<>((int) (size / slide));
+		//Felix: 计算窗口开始时间
 		long lastStart = TimeWindow.getWindowStartWithOffset(timestamp, offset, slide);
 		for (long start = lastStart;
 			start > timestamp - size;

@@ -606,6 +606,8 @@ public class WindowedStream<T, K, W extends Window> {
 
 		final String opName = builder.generateOperatorName(function, null);
 
+
+		//Felix: 构建StreamOperator
 		OneInputStreamOperator<T, R> operator = builder.process(function);
 
 		return input.transform(opName, resultType, operator);
