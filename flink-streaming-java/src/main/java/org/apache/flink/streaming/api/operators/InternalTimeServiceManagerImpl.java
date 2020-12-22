@@ -179,6 +179,7 @@ public class InternalTimeServiceManagerImpl<K> implements InternalTimeServiceMan
 
 	@Override
 	public void advanceWatermark(Watermark watermark) throws Exception {
+		//Felix: watermark生成
 		for (InternalTimerServiceImpl<?, ?> service : timerServices.values()) {
 			service.advanceWatermark(watermark.getTimestamp());
 		}

@@ -81,6 +81,8 @@ public interface AssignerWithPunctuatedWatermarks<T> extends TimestampAssigner<T
 	 * {@link AssignerWithPunctuatedWatermarks this class}.
 	 *
 	 * @return {@code Null}, if no watermark should be emitted, or the next watermark to emit.
+	 *
+	 * Felix: lastElement表示当前事件对象、extractedTimestamp为当前事件中的eventTime
 	 */
 	@Nullable
 	Watermark checkAndGetNextWatermark(T lastElement, long extractedTimestamp);

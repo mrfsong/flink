@@ -385,6 +385,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			for (W window: elementWindows) {
 
 				// drop if the window is already late
+				//Felix: 判断条件： 1. eventTime时间语义 2. 当前最新watermark大于当前窗口endTime +  allowedLateness
+				//Felix: 可能出现原因： 1. 数据乱序、后发生的数据先被处理、此情况会触发后续sideOutput逻辑
 				if (isWindowLate(window)) {
 					continue;
 				}
@@ -413,6 +415,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 				if (triggerResult.isPurge()) {
 					windowState.clear();
 				}
+
+				//Felix: 注册窗口endTimer (timer执行时间)
 				registerCleanupTimer(window);
 			}
 		}
@@ -456,6 +460,12 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			mergingWindows = null;
 		}
 
+		/**
+		 *
+		 * Felix: watermark是SourceOutputWithWatermarks#emitPeriodicWatermark()生成的，可以理解为在普通的数据流中【插入】特殊的时间消息、其中时间时间为timer的执行时间(window.endTime + lateness)。
+		 * 当WindowOperator接收到这条消息的时候、会尝试再判断当前eventTime是否满足trigger fire条件。
+
+		*/
 		TriggerResult triggerResult = triggerContext.onEventTime(timer.getTimestamp());
 
 		if (triggerResult.isFire()) {
@@ -469,6 +479,8 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 			windowState.clear();
 		}
 
+
+		// 当前watermark中的eventTime时间是有cleanupTime(window)方法生成、clearAllState方法一定会被执行！！！
 		if (windowAssigner.isEventTime() && isCleanupTime(triggerContext.window, timer.getTimestamp())) {
 			clearAllState(triggerContext.window, windowState, mergingWindows);
 		}
@@ -583,7 +595,7 @@ public class WindowOperator<K, IN, ACC, OUT, W extends Window>
 	 * of the given window.
 	 */
 	protected boolean isWindowLate(W window) {
-		//Felix: 判断窗口是否延迟条件：eventTime时间语义 && 水位线超过窗口 (endTime +  allowedLateness) 时间
+		//Felix: 判断窗口是否延迟条件：eventTime时间语义 && 水位线超过当前窗口（endTime +  allowedLateness）时间
 		return (windowAssigner.isEventTime() && (cleanupTime(window) <= internalTimerService.currentWatermark()));
 	}
 

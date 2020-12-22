@@ -265,11 +265,14 @@ public class InternalTimerServiceImpl<K, N> implements InternalTimerService<N> {
 		}
 	}
 
+	/** Felix: watermark 处理逻辑 */
 	public void advanceWatermark(long time) throws Exception {
+
 		currentWatermark = time;
 
 		InternalTimer<K, N> timer;
 
+		//Felix: 当新的水位线（watermark）生成时、会取出eventTimer队列首元素（即当前窗口endTime）和水位线进行比较，当水位线大于窗口endTime时，会执行Triggerable方法进行事件处理
 		while ((timer = eventTimeTimersQueue.peek()) != null && timer.getTimestamp() <= time) {
 			eventTimeTimersQueue.poll();
 			keyContext.setCurrentKey(timer.getKey());
