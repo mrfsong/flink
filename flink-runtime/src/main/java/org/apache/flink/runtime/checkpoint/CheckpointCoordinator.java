@@ -996,12 +996,12 @@ public class CheckpointCoordinator {
 			final PendingCheckpoint checkpoint = pendingCheckpoints.get(checkpointId);
 
 			if (checkpoint != null && !checkpoint.isDisposed()) {
-
+				//Felix: checkpoint结果确认
 				switch (checkpoint.acknowledgeTask(message.getTaskExecutionId(), message.getSubtaskState(), message.getCheckpointMetrics())) {
 					case SUCCESS:
 						LOG.debug("Received acknowledge message for checkpoint {} from task {} of job {} at {}.",
 							checkpointId, message.getTaskExecutionId(), message.getJob(), taskManagerLocationInfo);
-
+						//Felix: task | Coordinators | jobMaster三个维度全部ack后方能完全确认
 						if (checkpoint.isFullyAcknowledged()) {
 							completePendingCheckpoint(checkpoint);
 						}
@@ -1096,6 +1096,7 @@ public class CheckpointCoordinator {
 			Preconditions.checkState(pendingCheckpoint.isDisposed() && completedCheckpoint != null);
 
 			try {
+				//Felix: 保存确认完成的checkpoint
 				completedCheckpointStore.addCheckpoint(completedCheckpoint, checkpointsCleaner, this::scheduleTriggerRequest);
 			} catch (Exception exception) {
 				// we failed to store the completed checkpoint. Let's clean up
@@ -1687,7 +1688,7 @@ public class CheckpointCoordinator {
 		@Override
 		public void run() {
 			try {
-				//Felix: checkpoint时间入口
+				//Felix: checkpoint触发入口
 				triggerCheckpoint(true);
 			}
 			catch (Exception e) {

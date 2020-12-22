@@ -277,6 +277,8 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 			Map.Entry<Long, TransactionHolder<TXN>> entry = pendingTransactionIterator.next();
 			Long pendingTransactionCheckpointId = entry.getKey();
 			TransactionHolder<TXN> pendingTransaction = entry.getValue();
+
+			//Felix: id <= checkpointId的所有pendingCommit事务均会被commit
 			if (pendingTransactionCheckpointId > checkpointId) {
 				continue;
 			}
@@ -284,8 +286,10 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 			LOG.info("{} - checkpoint {} complete, committing transaction {} from checkpoint {}",
 				name(), checkpointId, pendingTransaction, pendingTransactionCheckpointId);
 
+			//Felix: 事务超时警告
 			logWarningIfTimeoutAlmostReached(pendingTransaction);
 			try {
+				//Felix: 第二阶段提交 commit
 				commit(pendingTransaction.handle);
 			} catch (Throwable t) {
 				if (firstError == null) {
@@ -317,11 +321,12 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 
 		long checkpointId = context.getCheckpointId();
 		LOG.debug("{} - checkpoint {} triggered, flushing transaction '{}'", name(), context.getCheckpointId(), currentTransactionHolder);
-
+		//Felix: 第一阶段提交：preCommit，处理成功后需要关闭事务
 		preCommit(currentTransactionHolder.handle);
 		pendingCommitTransactions.put(checkpointId, currentTransactionHolder);
 		LOG.debug("{} - stored pending transactions {}", name(), pendingCommitTransactions);
 
+		//Felix: 每次checkpoint都会开启一个新事务
 		currentTransactionHolder = beginTransactionInternal();
 		LOG.debug("{} - started new transaction '{}'", name(), currentTransactionHolder);
 
@@ -359,11 +364,14 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 				List<TXN> handledTransactions = new ArrayList<>(recoveredTransactions.size() + 1);
 				for (TransactionHolder<TXN> recoveredTransaction : recoveredTransactions) {
 					// If this fails to succeed eventually, there is actually data loss
+					//Felix: TransactionHolder中包含transactionId信息、通过他可以关联到上一次未提交的事务信息。
+					//Felix: 此过程可能会由于外部配置干扰、失败单不触发ck重启机制，最后导致数据丢失！！！
 					recoverAndCommitInternal(recoveredTransaction);
 					handledTransactions.add(recoveredTransaction.handle);
 					LOG.info("{} committed recovered transaction {}", name(), recoveredTransaction);
 				}
 
+				//TODO 此处recoverAndAbort逻辑什么鬼？
 				{
 					TXN transaction = operatorState.getPendingTransaction().handle;
 					recoverAndAbort(transaction);
@@ -405,10 +413,12 @@ public abstract class TwoPhaseCommitSinkFunction<IN, TXN, CONTEXT>
 	 */
 	private void recoverAndCommitInternal(TransactionHolder<TXN> transactionHolder) {
 		try {
+			//Felix: 事务超时警告
 			logWarningIfTimeoutAlmostReached(transactionHolder);
 			recoverAndCommit(transactionHolder.handle);
 		} catch (final Exception e) {
 			final long elapsedTime = clock.millis() - transactionHolder.transactionStartTime;
+			//Felix: 当满足ignoreFailuresAfterTransactionTimeout:true && 事务超时transactionTimeout时，不再继续抛出异常（即：不再触发ck的作业重启、此情况下会导致数据丢失！！！）
 			if (ignoreFailuresAfterTransactionTimeout && elapsedTime > transactionTimeout) {
 				LOG.error("Error while committing transaction {}. " +
 						"Transaction has been open for longer than the transaction timeout ({})." +

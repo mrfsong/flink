@@ -109,6 +109,9 @@ public class TwoPhaseCommitSinkFunctionTest {
 		harness.snapshot(1, 3);
 		harness.processElement("44", 4);
 		harness.snapshot(2, 5);
+
+		//Felix: 此处模拟同时多个ck成功回调场景
+		//小于当前checkpointId的preCommit事务均会被commit
 		harness.notifyOfCompletedCheckpoint(2);
 		harness.notifyOfCompletedCheckpoint(1);
 
@@ -139,6 +142,7 @@ public class TwoPhaseCommitSinkFunctionTest {
 		harness.processElement("43", 2);
 		OperatorSubtaskState snapshot = harness.snapshot(1, 3);
 
+		//Felix: 此处设置writable:false、在ck调用preCommit方法的时候会抛出异常，从而模拟preCommit过程中异常场景。
 		tmpDirectory.setWritable(false);
 		try {
 			harness.processElement("44", 4);
@@ -155,6 +159,9 @@ public class TwoPhaseCommitSinkFunctionTest {
 		tmpDirectory.setWritable(true);
 
 		setUpTestHarness();
+
+		//Felix: 模拟preCommit失败、作业重启状态恢复过程的commit逻辑
+		//该场景下，chk:2失败、只会提交checkpointId: 1 , 2的事务
 		harness.initializeState(snapshot);
 
 		assertExactlyOnce(Arrays.asList("42", "43"));
@@ -171,8 +178,11 @@ public class TwoPhaseCommitSinkFunctionTest {
 		harness.processElement("42", 0);
 
 		final OperatorSubtaskState snapshot = harness.snapshot(0, 1);
+
+		//Felix: 此处会通知
 		harness.notifyOfCompletedCheckpoint(1);
 
+		//Felix: ContentDumpSinkFunction#commit方法中，通过throwException:false抛出异常模拟
 		throwException.set(true);
 
 		closeTestHarness();
@@ -189,6 +199,7 @@ public class TwoPhaseCommitSinkFunctionTest {
 			assertEquals("Expected exception", e.getMessage());
 		}
 
+		//Felix: 此处模拟transaction超时、不会继续触发initializeState异常ck重启恢复机制
 		clock.setEpochMilli(transactionTimeout + 1);
 		harness.initializeState(snapshot);
 
@@ -206,6 +217,7 @@ public class TwoPhaseCommitSinkFunctionTest {
 
 		harness.open();
 		harness.snapshot(0, 1);
+		//Felix: 模拟事务超时、目前单超时维度,flink只会WARN
 		final long elapsedTime = (long) ((double) transactionTimeout * warningRatio + 2);
 		clock.setEpochMilli(elapsedTime);
 		harness.notifyOfCompletedCheckpoint(1);

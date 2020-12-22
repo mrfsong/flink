@@ -1090,6 +1090,7 @@ public abstract class SchedulerBase implements SchedulerNG {
 	private void startAllOperatorCoordinators() {
 		final Collection<OperatorCoordinatorHolder> coordinators = getAllCoordinators();
 		try {
+			//Felix: 启动所有算子Coordinator
 			for (OperatorCoordinatorHolder coordinator : coordinators) {
 				coordinator.start();
 			}

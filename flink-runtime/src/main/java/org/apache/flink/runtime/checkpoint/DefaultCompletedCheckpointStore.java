@@ -208,6 +208,7 @@ public class DefaultCompletedCheckpointStore<R extends ResourceVersion<R>> imple
 		final String path = completedCheckpointStoreUtil.checkpointIDToName(checkpoint.getCheckpointID());
 
 		// Now add the new one. If it fails, we don't want to loose existing data.
+		// Felix: 持久化CompletedCheckpoint到后端存储中(zk/k8s)
 		checkpointStateHandleStore.addAndLock(path, checkpoint);
 
 		completedCheckpoints.addLast(checkpoint);
