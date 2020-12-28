@@ -51,6 +51,7 @@ public class LocalRecoverableWriter implements RecoverableWriter {
 		final File tempFile = generateStagingTempFilePath(targetFile);
 
 		// try to create the parent
+		//Felix: 创建bucket根目录
 		final File parent = tempFile.getParentFile();
 		if (parent != null && !parent.mkdirs() && !parent.exists()) {
 			throw new IOException("Failed to create the parent directory: " + parent);

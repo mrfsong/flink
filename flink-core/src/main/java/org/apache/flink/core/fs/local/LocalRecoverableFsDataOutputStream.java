@@ -72,6 +72,7 @@ class LocalRecoverableFsDataOutputStream extends RecoverableFsDataOutputStream {
 		if (this.fileChannel.position() < resumable.offset()) {
 			throw new IOException("Missing data in tmp file: " + tempFile.getAbsolutePath());
 		}
+		//Felix: 截取一个文件。截取文件时，文件将中指定长度后面的部分将被删除
 		this.fileChannel.truncate(resumable.offset());
 		this.fos = Channels.newOutputStream(fileChannel);
 	}
@@ -93,6 +94,7 @@ class LocalRecoverableFsDataOutputStream extends RecoverableFsDataOutputStream {
 
 	@Override
 	public void sync() throws IOException {
+		//Felix: 将通道里尚未写入磁盘的数据强制写到磁盘上(出于性能方面的考虑，操作系统会将数据缓存在内存中，所以无法保证写入到FileChannel里的数据一定会即时写到磁盘上。要保证这一点，需要调用force方法)
 		fileChannel.force(true);
 	}
 

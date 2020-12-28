@@ -201,6 +201,8 @@ public class Buckets<IN, BucketID> {
 
 		final Bucket<IN, BucketID> bucket = activeBuckets.get(bucketId);
 		if (bucket != null) {
+			//Felix: 状态恢复后、进行相同bucket合并操作
+			//TODO 为什么要进行此操作？失败后或者恢复前不进行【临时文件】清理工作吗？
 			bucket.merge(restoredBucket);
 		} else {
 			activeBuckets.put(bucketId, restoredBucket);
@@ -250,6 +252,7 @@ public class Buckets<IN, BucketID> {
 			final ListState<byte[]> bucketStatesContainer) throws Exception {
 
 		for (Bucket<IN, BucketID> bucket : activeBuckets.values()) {
+			//Felix: 准备checkpoint要处理的数据 @See BucketState
 			final BucketState<BucketID> bucketState = bucket.onReceptionOfCheckpoint(checkpointId);
 
 			final byte[] serializedBucketState = SimpleVersionedSerialization
@@ -284,7 +287,7 @@ public class Buckets<IN, BucketID> {
 				elementTimestamp,
 				currentWatermark,
 				currentProcessingTime);
-
+		//Felix: 从记录中提取bucketId(分区目录)
 		final BucketID bucketId = bucketAssigner.getBucketId(value, bucketerContext);
 		final Bucket<IN, BucketID> bucket = getOrCreateBucketForBucketId(bucketId);
 		bucket.write(value, currentProcessingTime);

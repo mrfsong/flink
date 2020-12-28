@@ -197,6 +197,8 @@ public class Bucket<IN, BucketID> {
 	}
 
 	void write(IN element, long currentTime) throws IOException {
+
+		//Felix: 根据rolling策略进行文件切分
 		if (inProgressPart == null || rollingPolicy.shouldRollOnEvent(inProgressPart, element)) {
 
 			if (LOG.isDebugEnabled()) {
@@ -210,6 +212,8 @@ public class Bucket<IN, BucketID> {
 	}
 
 	private InProgressFileWriter<IN, BucketID> rollPartFile(final long currentTime) throws IOException {
+
+		//Felix: 关闭旧文件
 		closePartFile();
 
 		final Path partFilePath = assembleNewPartPath();
@@ -230,6 +234,7 @@ public class Bucket<IN, BucketID> {
 	 * Constructor a new PartPath and increment the partCounter.
 	 */
 	private Path assembleNewPartPath() {
+		//Felix: part文件序号+1
 		long currentPartCounter = partCounter++;
 		return new Path(bucketPath, outputFileConfig.getPartPrefix() + '-' + subtaskIndex + '-' + currentPartCounter + outputFileConfig.getPartSuffix());
 	}
@@ -237,13 +242,17 @@ public class Bucket<IN, BucketID> {
 	private InProgressFileWriter.PendingFileRecoverable closePartFile() throws IOException {
 		InProgressFileWriter.PendingFileRecoverable pendingFileRecoverable = null;
 		if (inProgressPart != null) {
+			//Felix: 进行fos的flush && sync && close操作
 			pendingFileRecoverable = inProgressPart.closeForCommit();
+
+			//Felix: pendingFileRecoverablesForCurrentCheckpoint ===> 待commit文件信息
 			pendingFileRecoverablesForCurrentCheckpoint.add(pendingFileRecoverable);
 			inProgressPart = null;
 		}
 		return pendingFileRecoverable;
 	}
 
+	//Felix: 真正关闭fos、此方法只有在sink#close的时候被调用
 	void disposePartFile() {
 		if (inProgressPart != null) {
 			inProgressPart.dispose();
@@ -256,7 +265,12 @@ public class Bucket<IN, BucketID> {
 		InProgressFileWriter.InProgressFileRecoverable inProgressFileRecoverable = null;
 		long inProgressFileCreationTime = Long.MAX_VALUE;
 
+
+		//Felix: 未开启rollingPolicy.shouldRollOnCheckpoint
 		if (inProgressPart != null) {
+
+			//Felix: flush & sync In-Process文件(目前只有RowWisePartWriter支持persist操作)
+			//Felix: persist方法会持久化fos写缓存到磁盘、不会进行close操作（和sync方法类似）
 			inProgressFileRecoverable = inProgressPart.persist();
 			inProgressFileCreationTime = inProgressPart.getCreationTime();
 			this.inProgressFileRecoverablesPerCheckpoint.put(checkpointId, inProgressFileRecoverable);
@@ -270,6 +284,7 @@ public class Bucket<IN, BucketID> {
 			if (LOG.isDebugEnabled()) {
 				LOG.debug("Subtask {} closing in-progress part file for bucket id={} on checkpoint.", subtaskIndex, bucketId);
 			}
+			//Felix: checkpoint时、关闭In-progress文件写入,flush后添加到pendingFileRecoverablesForCurrentCheckpoint
 			closePartFile();
 		}
 
@@ -290,6 +305,7 @@ public class Bucket<IN, BucketID> {
 			Map.Entry<Long, List<InProgressFileWriter.PendingFileRecoverable>> entry = it.next();
 
 			for (InProgressFileWriter.PendingFileRecoverable pendingFileRecoverable : entry.getValue()) {
+				//Felix: 提交临时文件（InProcess -> Pending -> Finished）
 				bucketWriter.recoverPendingFile(pendingFileRecoverable).commit();
 			}
 			it.remove();
